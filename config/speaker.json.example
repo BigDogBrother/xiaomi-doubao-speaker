@@ -1,0 +1,7 @@
+{
+  "host": "YOUR_SPEAKER_IP",
+  "port": 22,
+  "username": "root",
+  "password": "",
+  "key_filename": ""
+}

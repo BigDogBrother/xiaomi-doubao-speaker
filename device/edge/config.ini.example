@@ -1,0 +1,9 @@
+[realtime]
+api_key = SET_LOCALLY_WITHOUT_SHARING
+model = 1.2.6.1
+
+[wakeup]
+say_hello = 我在，请说。
+
+[audio]
+playback_gain = 1.0

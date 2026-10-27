@@ -1,0 +1,55 @@
+name: CI
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  host-tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - name: Install host test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ libspdlog-dev
+          python -m pip install -r tools/requirements.txt
+      - name: Public source checks
+        run: python tools/check_public_tree.py
+      - name: Python tests
+        run: python -m unittest discover -s test/edge -p 'test_*.py' -v
+      - name: C++ and lease tests
+        run: |
+          cmake -S test/edge -B .build/tests
+          cmake --build .build/tests --parallel 2
+          ctest --test-dir .build/tests --output-on-failure
+      - name: Shell syntax
+        run: |
+          bash -n tools/build-armhf.sh
+          find device test/edge -name '*.sh' -exec sh -n {} \;
+  armhf-build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build standalone ARM runtime
+        run: docker build --output type=local,dest=dist .
+      - name: Verify runtime package excludes live credentials
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import tarfile
+          path = Path('dist/doubao-edge-runtime.tar.gz')
+          assert path.is_file()
+          with tarfile.open(path) as archive:
+              names = {m.name.removeprefix('./') for m in archive.getmembers()}
+              assert 'doubao-edge' in names
+              assert 'config.ini.example' in names
+              assert 'config.ini' not in names
+              assert 'vivi-wake.pcm' not in names
+              assert not any('.secrets' in name for name in names)
+          print('Runtime package checks passed')
+          PY
