@@ -16,7 +16,7 @@ jobs:
       - name: Install host test dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake g++ libspdlog-dev
+          sudo apt-get install -y cmake g++ libspdlog-dev nlohmann-json3-dev
           python -m pip install -r tools/requirements.txt
       - name: Public source checks
         run: python tools/check_public_tree.py
@@ -53,3 +53,9 @@ jobs:
               assert not any('.secrets' in name for name in names)
           print('Runtime package checks passed')
           PY
+      - name: Upload verified runtime
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: armhf-runtime
+          path: dist/
+          retention-days: 7

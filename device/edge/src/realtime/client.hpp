@@ -13,6 +13,8 @@
 #include <ixwebsocket/IXWebSocket.h>
 #include <nlohmann/json.hpp>
 #include "config/config.hpp"
+#include "realtime/memory.hpp"
+#include <set>
 
 namespace xiaoai_plus::realtime {
 class Client {
@@ -41,6 +43,14 @@ class Client {
   void OnMessage(const ix::WebSocketMessagePtr& message);
   void Send(const nlohmann::json& event);
   void SenderLoop();
+  std::string Instructions() const;
+  nlohmann::json SessionEvent(const std::string& type);
+  void HandleTools(const nlohmann::json& event);
+  Memory memory_;
+  std::string resume_id_, active_id_;
+  std::atomic<bool> turn_valid_{false}, suppress_resume_{false};
+  bool other_speaker_{false}, retry_fresh_{false};
+  std::set<std::string> handled_calls_;
   config::Config cfg_;
   Callbacks callbacks_;
   std::atomic<bool> running_{false}, ready_{false}, closing_{false}, speaking_{false}, capacity_drop_{false};
