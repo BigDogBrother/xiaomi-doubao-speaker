@@ -32,12 +32,14 @@ int main(int argc, char** argv) {
   std::string probe_kws;
   bool probe_kws_streams = false;
   std::string probe_first, probe_second;
+  std::string memory_pcm, memory_expected;
   for (int i = 1; i < argc; ++i) {
     std::string arg = argv[i];
     if (arg == "-c" && i + 1 < argc) {
       config_path = argv[++i];
     }
     if (arg == "--probe-api") probe_api = true;
+    if (arg == "--probe-memory" && i+2<argc) {memory_pcm=argv[++i];memory_expected=argv[++i];}
     if (arg == "--probe-lease") probe_lease = true;
     if (arg == "--observe-only") observe_only = true;
     if (arg == "--probe-session") probe_session = true;
@@ -48,6 +50,27 @@ int main(int argc, char** argv) {
 
   try {
     auto cfg = xiaoai_plus::config::load(config_path);
+    if(!memory_pcm.empty()) {
+      std::ifstream f(memory_pcm,std::ios::binary);
+      std::vector<uint8_t> pcm((std::istreambuf_iterator<char>(f)),{});
+      if(pcm.empty())return 1;
+      std::atomic<bool> matched{false},done{false};
+      xiaoai_plus::realtime::Client::Callbacks cb;
+      cb.on_text_done=[&](const std::string& t){if(t.find(memory_expected)!=std::string::npos)matched=true;};
+      cb.on_chat_ended=[&](){done=true;};
+      xiaoai_plus::realtime::Client client(cfg,cb);
+      if(!client.Start() || !client.StartSession())return 1;
+      auto tick=std::chrono::steady_clock::now();
+      for(size_t i=0;i<pcm.size();i+=640){
+        std::vector<uint8_t> frame(640,0);std::copy_n(pcm.data()+i,std::min<size_t>(640,pcm.size()-i),frame.data());
+        client.EnqueueAudio(frame);tick+=std::chrono::milliseconds(20);std::this_thread::sleep_until(tick);
+      }
+      const auto deadline=std::chrono::steady_clock::now()+std::chrono::seconds(25);
+      while(!done && client.IsReady() && std::chrono::steady_clock::now()<deadline)std::this_thread::sleep_for(std::chrono::milliseconds(50));
+      client.FinishSession();client.Stop();
+      std::cout<<"memory_probe matched="<<matched<<" completed="<<done<<"\n";
+      return matched && done ? 0 : 1;
+    }
     if (probe_lease) {
       xiaoai_plus::app::NativeLease lease;
       if (!lease.Acquire()) {std::cerr << "lease_probe_busy\n";return 1;}

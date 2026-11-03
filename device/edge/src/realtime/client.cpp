@@ -4,6 +4,7 @@
 #include <cctype>
 #include <stdexcept>
 #include <utility>
+#include <cstdlib>
 #include "common/log.hpp"
 
 namespace xiaoai_plus::realtime {
@@ -65,7 +66,7 @@ bool LooksLikeEcho(const std::string& assistant,const std::string& input) {
   return *std::min_element(prev.begin(),prev.end())<=std::min<int>(5,b.size()/5);
 }
 }
-Client::Client(config::Config cfg, Callbacks cb):cfg_(std::move(cfg)),callbacks_(std::move(cb)){}
+Client::Client(config::Config cfg, Callbacks cb):memory_(std::getenv("DOUBAO_MEMORY_PATH") ? std::getenv("DOUBAO_MEMORY_PATH") : "/data/doubao-edge/memory.json"),cfg_(std::move(cfg)),callbacks_(std::move(cb)){}
 Client::~Client(){Stop();}
 bool Client::Start(){if(running_.exchange(true))return true;sender_=std::thread(&Client::SenderLoop,this);return true;}
 void Client::Stop(){
@@ -185,7 +186,9 @@ void Client::OnMessage(const ix::WebSocketMessagePtr& msg){
       if(!items.empty())Send({{"type","conversation.item.delete"},{"items",items}});
       return;
     }
-    if(type=="response.output_text.delta"){
+    if(type=="response.output_text.done") {
+      if(callbacks_.on_text_done)callbacks_.on_text_done(ev.value("text",assistant_text_));
+    }else if(type=="response.output_text.delta"){
       assistant_text_+=ev.value("delta",std::string());
       if(assistant_text_.size()>3600){
         size_t n=assistant_text_.size()-3600;
@@ -247,7 +250,7 @@ void Client::OnMessage(const ix::WebSocketMessagePtr& msg){
 
 std::string Client::Instructions() const {
   std::string profile;
-  std::ifstream f("/data/doubao-edge/profile.txt");
+  std::ifstream f(std::getenv("DOUBAO_PROFILE_PATH") ? std::getenv("DOUBAO_PROFILE_PATH") : "/data/doubao-edge/profile.txt");
   if(f) {profile.assign(std::istreambuf_iterator<char>(f),{});if(profile.size()>4096)profile.clear();}
   return "你是豆包，请用自然、简洁的中文对话。你没有米家设备控制、闹钟或音乐控制权限，不要声称已经操作。" + profile +
     "\n记忆规则：仅对主要使用者明确自述的稳定爱好、习惯、回答风格调用manage_memory。"

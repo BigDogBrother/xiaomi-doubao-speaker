@@ -26,6 +26,7 @@ class Client {
     std::function<void()> on_user_activity;
     std::function<void(const std::string&)> on_session_closed;
     std::function<void()> on_chat_ended;
+    std::function<void(const std::string&)> on_text_done; // Optional in-memory diagnostic callback.
   };
   Client(config::Config cfg, Callbacks callbacks);
   ~Client();
