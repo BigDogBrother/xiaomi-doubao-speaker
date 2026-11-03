@@ -294,7 +294,7 @@ void Client::HandleTools(const nlohmann::json& event) {
         }
       }
     } catch(...) {}
-    kLog->info("memory_tool ok={}",result.value("ok",false));
+    kLog->info("memory_tool ok={} reason={}",result.value("ok",false),result.value("reason",std::string("none")));
     Send({{"type","conversation.item.create"},{"items",nlohmann::json::array({{
       {"call_id",id},{"role","tool"},{"content",nlohmann::json::array({{{"type","input_text"},{"text",result.dump()}}})}
     }})}});

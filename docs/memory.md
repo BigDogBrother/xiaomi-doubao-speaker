@@ -1,0 +1,15 @@
+# Optional on-device memory
+
+The client reuses the server-returned `session.id` after a completed interaction if the idle interval is less than 30 minutes. A greeting without a question does not extend this interval. At 30 minutes, after an explicit restart, or after deletion, the next connection starts fresh. Ordinary network failures do not automatically discard the ID. The provider does not document a guaranteed retention period; resume may fail.
+
+Place an optional UTF-8 `profile.txt` in `/data/doubao-edge/` with mode 600. This file supplies private user background in `instructions`. Do not commit personal profiles or memory files. Without a profile the client uses generic instructions.
+
+`memory.json`, created with mode 600 using atomic replacement, contains only the session ID, last interaction timestamp and compact preference records. No audio or full transcript is stored. Explicit stable hobbies, habits and reply preferences are submitted through the realtime model's `manage_memory` tool. The client validates the requested category and requires evidence from the current recognized utterance before saving or removing a preference. Extraction is model driven, not speaker recognition or a guarantee of perfect semantic classification. Other household members should identify themselves; there are no separate voice profiles.
+
+The intended preference budget is at most approximately 300 tokens. There is no verified service tokenizer in this project. The implementation uses a conservative **240 UTF-8 bytes for the complete injected preference JSON**, including its metadata, rather than claiming exact token counts. This can retain fewer preferences than 300 tokens would allow. It preserves explicitly marked preferences first, merges matching keys, and evicts older unmarked entries first. Fixed profile, tool schema and short-term server context are outside this budget and contribute to costs. There is no extra summarization model or memory database.
+
+Supported requests include viewing preferences, forgetting a particular hobby, clearing all hobbies and habits, and starting a new conversation. Successful persistence is required before a success result is returned. Removing or correcting existing information invalidates future resumption of the old ID and requests deletion of the active conversation context, so stale data is not deliberately reintroduced. This is not a guarantee of deleting provider-side retention or billing records.
+
+`DOUBAO_MEMORY_PATH` and `DOUBAO_PROFILE_PATH` allow isolated synthetic diagnostics. `--probe-memory PCM EXPECTED` checks recognized input and a response match in memory, printing only status/counts. It does not play audio or open the microphone. Never point diagnostic probes at production memory.
+
+Host regression tests cover idle boundaries, restart persistence, duplicate entries, budgets, explicit clearing, wrong-speaker and missing-evidence rejection, restricted file permissions and failed writes. Device acceptance should also exercise real acoustic wakeup, interruptions and native assistant restoration.

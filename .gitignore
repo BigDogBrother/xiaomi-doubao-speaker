@@ -7,6 +7,9 @@ __pycache__/
 .env
 .env.*
 config.ini
+profile.txt
+memory.json
+memory.json.tmp
 assets/
 *.pcm
 *.wav
