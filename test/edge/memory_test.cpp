@@ -20,6 +20,11 @@ int main() {
   assert(m.Execute(args,"我喜欢画画",false)["ok"].get<bool>());
   assert(m.Execute(args,"我喜欢画画",false)["ok"].get<bool>());
   assert(m.Preferences().size()==1);
+  auto remove=nlohmann::json{{"action","remove"},{"key","绘画"}};
+  assert(!m.Execute(remove,"讲个故事",false)["ok"].get<bool>());
+  assert(m.Execute(remove,"忘记绘画这个爱好",false)["ok"].get<bool>());
+  assert(m.Preferences().empty());assert(m.Resume(now).empty());
+  assert(m.Execute(args,"我喜欢画画",false)["ok"].get<bool>());
   for(int i=0;i<20;++i) {
     args["key"]=std::to_string(i);args["value"]="偏好"+std::to_string(i);args["important"]=false;
     m.Execute(args,"我喜欢画画",false);assert(m.Preferences().dump().size()<=240);

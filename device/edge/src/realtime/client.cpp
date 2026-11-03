@@ -239,9 +239,13 @@ void Client::OnMessage(const ix::WebSocketMessagePtr& msg){
       if(!capacity_drop_ && !drop_echo_response_){speaking_=false;ended_at_=std::chrono::steady_clock::now();if(callbacks_.on_set_ai_speaking)callbacks_.on_set_ai_speaking(false);}
     }else if(type=="response.done"){
       if(turn_valid_ && !suppress_resume_)memory_.Touch();
-      if(ev.contains("usage")) {
-        const auto& u=ev["usage"];
-        kLog->info("usage_counts input={} output={} total={}",u.value("input_tokens",0),u.value("output_tokens",0),u.value("total_tokens",0));
+      auto u=ev.value("usage",ev.value("response",nlohmann::json::object()).value("usage",nlohmann::json::object()));
+      if(!u.empty()) {
+        auto in=u.value("input_token_details",nlohmann::json::object());
+        auto out=u.value("output_token_details",nlohmann::json::object());
+        kLog->info("usage_counts total={} output={} input_text={} input_audio={} cached={} output_text={} output_audio={}",
+          u.value("total_tokens",0),u.value("output_tokens",0),in.value("text_tokens",0),in.value("audio_tokens",0),
+          in.value("cached_tokens",0),out.value("text_tokens",0),out.value("audio_tokens",0));
       }
       if(callbacks_.on_chat_ended)callbacks_.on_chat_ended();
     }

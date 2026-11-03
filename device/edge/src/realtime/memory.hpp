@@ -63,6 +63,7 @@ class Memory {
           return {{"ok",false},{"reason","explicit_removal_required"}};
         auto kept=nlohmann::json::array();
         for(const auto& p:prefs)if(p.value("key",std::string())!=key && p.value("value",std::string())!=value)kept.push_back(p);
+        if(kept.size()==prefs.size())return {{"ok",false},{"reason","preference_not_found"},{"preferences",prefs}};
         next["preferences"]=kept;next["id"]="";next["last_turn"]=0;
         bool ok=Commit(next);return {{"ok",ok},{"reset_context",ok},{"preferences",Preferences()}};
       }
