@@ -56,6 +56,16 @@ class Memory {
     else {
       auto kind=a.value("kind",std::string()), value=a.value("value",std::string());
       auto evidence=a.value("evidence",std::string());
+      if(action=="remove") {
+        auto key=a.value("key",std::string());
+        if((utterance.find("忘")==std::string::npos && utterance.find("删")==std::string::npos) ||
+           ((value.empty() || utterance.find(value)==std::string::npos) && (key.empty() || utterance.find(key)==std::string::npos)))
+          return {{"ok",false},{"reason","explicit_removal_required"}};
+        auto kept=nlohmann::json::array();
+        for(const auto& p:prefs)if(p.value("key",std::string())!=key && p.value("value",std::string())!=value)kept.push_back(p);
+        next["preferences"]=kept;next["id"]="";next["last_turn"]=0;
+        bool ok=Commit(next);return {{"ok",ok},{"reset_context",ok},{"preferences",Preferences()}};
+      }
       if(evidence.empty() || utterance.find(evidence)==std::string::npos)return {{"ok",false},{"reason","evidence_required"}};
       if(kind!="hobby" && kind!="habit" && kind!="reply_style")return {{"ok",false},{"reason","unsupported_kind"}};
       if(value.empty() || value.size()>72 || value.find('\n')!=std::string::npos)return {{"ok",false},{"reason","invalid_value"}};
