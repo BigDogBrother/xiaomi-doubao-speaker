@@ -24,7 +24,7 @@ namespace {
 
 const auto kLog = xiaoai_plus::GetLogger("app");
 
-constexpr int kWakeupTimeoutMs = 6200; // ~6 seconds after the final audible sample.
+constexpr int kWakeupTimeoutMs = 10000; // 10 seconds after the final audible sample.
 constexpr int kWelcomeResponseTimeoutSec = 8;
 constexpr float kKwsThreshold = 0.20f;
 constexpr int kMinTriggerIntervalMs = 800;
