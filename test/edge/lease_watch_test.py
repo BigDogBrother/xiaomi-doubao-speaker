@@ -14,7 +14,7 @@ with tempfile.TemporaryDirectory(prefix='edge-lease-test-') as name:
   assert mute.exists() and lease.exists(), 'progressing session was hard-capped'
   clock.write_text('208\n')
   deadline=time.monotonic()+3
-  while mute.exists() and time.monotonic()<deadline:time.sleep(.05)
+  while (mute.exists() or lease.exists()) and time.monotonic()<deadline:time.sleep(.05)
   assert not mute.exists() and not lease.exists(), 'stale heartbeat did not restore native'
  finally:
   if lease.exists():run('end')
